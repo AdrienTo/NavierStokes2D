@@ -19,7 +19,7 @@ A comprendre:
 
 2.1 Méthodes des Caractéristiques:
 
--> Regarder à quoi corresponde l'expression de grad(p(n+1))
--> Penser une méthode efficace pour evaluer la fonction u{n}(ksi{n}) = u{n}(x{n}-u{n}*dt) 
+-> Regarder à quoi correspond l'expression de grad(p(n+1))
+-> Penser à une méthode efficace pour evaluer la fonction u{n}(ksi{n}) = u{n}(x{n}-u{n}*dt) 
 
 
