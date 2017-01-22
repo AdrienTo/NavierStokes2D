@@ -4,6 +4,7 @@
 - src:  les sources du programme, en C++
 - include: les headers C++
 - test: les fichiers nécessaires aux tests de bon fonctionnement
+
 ## Vérification des sources
 
 Pour vérifier le bon fonctionnement des classes, lancer les commandes suivantes dans ce dossier:
@@ -14,20 +15,22 @@ cd test
 ./R1_test
 ./meshes_test
 ```
-Aucun assert ne devrait être lancé et vous devriez avoir deux messages 'Test well performed'
+Aucun assert ne devrait être lancé et vous devriez avoir deux messages `Test well performed`
+
 ## Classes et méthodes implémentées:
-#simple_dim.c simple_dim.h
+
+### simple_dim.c simple_dim.h
 
 Implémentation d'une classe R1, point en une dimension (un réel). Elle n'est pas d'une grande utilité en pratique, mais est utile pour une généralisation en dimensions supérieures.
 
-#meshes_seg.c meshes_seg.h
+### meshes_seg.c meshes_seg.h
 
 Implémentation d'une classe Seg et de ses méthodes, qui représente deux points de R1 et plus généralement un vertice de dim 1.
 
 Implémentation des fonctions loadSeg et loadNodes qui permettent de charger des fichiers `.msh` et les stocker sous des vecteurs de pointeurs.
 
 
-Implémentation d'une classe ** abstraite ** Mesh_1D. 
+Implémentation d'une classe __abstraite__ Mesh_1D. 
 - Le constructeur permet de charger un fichier de maillage une dimension `.msh` et de le stocker, en conservant les informations sur sa géométrie, via trois vecteurs.
 - La méthode linearForm doit être réécrite par la classe qui hérite de ces propriétés (Mesh_1D étant abstraite). Elle correspond à l'action de l'opérateur différentiel sur la base des fonctions choisies pour les éléments finis
 - La méthode make_Rigidity_Matrix permet de construire la matrice de rigidité du problème lorsque linearForm est définie. La complexité inférieure à n*n et le résultat est stocké sous la forme de matrice creuse sous la forme CRS (Compressed Row Storage)
