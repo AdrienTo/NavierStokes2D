@@ -51,6 +51,15 @@ void test_loadNodes()
 
     for (int i = 0; i<sizeA; i++  )
     {
+        if(i !=0 && i !=100)
+        {
+
+            assert(!arrayNodes[i].isBoundary());
+        }
+        else
+        {
+            assert(arrayNodes[i].isBoundary());
+        }
         assert( fabs(arrayNodes[i].get() - 0.01*i)<0.000001 );  
     }
     return;
@@ -91,10 +100,10 @@ void test_loadSeg()
 void test_Orthogonal_Mesh_1D()
 {
     Orthogonal_Mesh_1D lineMesh("test_mesh.msh");
-    lineMesh.make_Rigidity_Matrix();
+    lineMesh.make_Stiffness_Matrix();
     vector<double> value;
     vector<int> col_ind, row_ptr;
-    lineMesh.get_Rigidity_Matrix(value,col_ind,row_ptr);
+    lineMesh.get_Stiffness_Matrix(value,col_ind,row_ptr);
     assert(col_ind.size() ==  value.size());
     assert(col_ind.size() ==  101);
     assert(row_ptr.size() == 102);
@@ -109,7 +118,7 @@ void test_Orthogonal_Mesh_1D()
         }
         else
         {
-            assert( fabs(value[i]-0.01)<0.000000000001);
+            assert( fabs(value[i]-P1_Lapl_Mesh_1D::penalty_coeff)<0.000000000001);
         }
     }
     assert(row_ptr[101]==101);
@@ -118,38 +127,50 @@ void test_Orthogonal_Mesh_1D()
 void test_P1_Lapl_Mesh_1D()
 {
     P1_Lapl_Mesh_1D lineMesh("test_mesh.msh");
-    lineMesh.make_Rigidity_Matrix();
+    try{
+        lineMesh.solveSystem();
+    }
+    catch(std::exception &exce){
+        assert(((string) exce.what()).compare("Erreur: tentative de résolution du problème sans avoir calculé la matrice de rigidité (matrice de rigidité de taille nulle).") ==0);
+    }
+
+
+    lineMesh.make_Stiffness_Matrix();
     vector<double> value;
     vector<int> col_ind, row_ptr;
-    lineMesh.get_Rigidity_Matrix(value,col_ind,row_ptr);
+    lineMesh.get_Stiffness_Matrix(value,col_ind,row_ptr);
     assert(col_ind.size() ==  value.size());
     assert(col_ind.size() == 301);
     assert(row_ptr.size() == 102);
     int Rsize = col_ind.size();
     for(int i = 0; i<Rsize; i++)
     {
-
         if(i>1 && i < Rsize-2)
         {
             assert(col_ind[i]== (i+1)/3 +(i+1)%3-1);
             assert(row_ptr[(i+1)/3] == i -((i+1)%3));
-            assert(fabs(value[i]+0.01-0.03*((i%3) ==0) )<0.0000000001 );
+            assert(fabs(value[i]+100-300*((i%3) ==0) )<0.0000000001 );
         }
-    
-
-
     } 
     assert(col_ind[0] == 0);    
     assert(col_ind[1] == 1);         
     assert(row_ptr[0] == 0);
-    assert( fabs(value[0]-0.01)<0.000000000001);
-    assert( fabs(value[1]+0.01)<0.000000000001);
+    assert( fabs(value[0]-P1_Lapl_Mesh_1D::penalty_coeff)<0.000000000001);
+    assert( fabs(value[1]+100)<0.000000000001);
 
     assert(col_ind[299] ==  99);
     assert(col_ind[300] ==  100);
     assert(row_ptr[101] == 301);
-    assert( fabs(value[299]+0.01)<0.000000000001);
-    assert( fabs(value[300]-0.01)<0.000000000001);
+    assert( fabs(value[299]+100)<0.000000000001);
+    assert( fabs(value[300]-P1_Lapl_Mesh_1D::penalty_coeff)<0.000000000001);
+    try{
+        lineMesh.solveSystem();
+    }
+    catch(std::exception &exce){
+        assert(((string) exce.what()).compare("Erreur: tentative de résolution du problème sans avoir calculé la partie constante du système (vecteur constant de taille nulle).") ==0);
+    }
+    lineMesh.make_Constant_Vector();
+    lineMesh.solveSystem();
 }
 void gnuPlot()
 {

@@ -33,40 +33,77 @@ public:
 };
 
 // Abstract class that represent a mesh storage has a finite element resolution method
-// The construction of the rigidity matrix is done by make_Rigidity_Matrix(), the result is in CRS form
+// The construction of the Stiffness matrix is done by make_Stiffness_Matrix(), the result is in CRS form
 // The method linearForm represents the linear form result, applying the operator to originPoint and otherPoint in the vertice Segment
 // This is an abstact class, it needs to be writter explicitly depending on the problem
     
 class Mesh_1D
 {
-    private:
+    protected:
         // Mesh-related vectors
         vector<R1> Nodes;
         vector<Seg> Segments;
         vector<vector<Seg*> > SegmentContainingNodes;   // Given the number of a node, it returns the vector of pointer to segments that have this node
-        
-        // Rigidity matrix vectors (the matrix is stored in the format CRS)
+        vector<R1*> Boundaries;                         // Nodes in the boundaries        
+
+        // Stiffness matrix vectors (the matrix is stored in the format CRS)
         vector<double> value;
         vector<int> col_ind, row_ptr;
+
+        // Constant vector (b in Ax = b)
+        vector<double> constVect;
+
+        // Solution of the problem
+        vector<double> Solution;
+
+        // Penalty coefficient
+
     public:
+        static const double penalty_coeff = 10000000000;
+        // Loading the ".msh" file
         Mesh_1D(char* filename);
-        virtual double linearForm(R1 * originPoint, R1 *  otherPoint, Seg segment) = 0;
-        void make_Rigidity_Matrix();
-        void get_Rigidity_Matrix(vector<double> & value,vector<int> & col_ind,vector<int> & row_ptr);
+
+        // Defining the Dirichlet problem :
+        // integral(Au,v) = integral(f,v) in O
+        //  u = g in dO
+
+        virtual double limitCondition(R1* point) = 0;                                       // x |--> g(x), for x in dO 
+        virtual double linearForm(R1* originPoint, Seg segment) = 0;                        // integral(f(x),phi(originPoint,x)) on segment                   
+        virtual double bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment) = 0;   // integral(A(u,v)(x)) on segment with u(x) = phi(originPoint,x), v(x) = phi(otherPoint,x)
+ 
+        ////////
+        //////// Solving the problem
+        ////////
+
+        // Calculating the data for the linear system
+
+        void make_Stiffness_Matrix();
+        void get_Stiffness_Matrix(vector<double> & value_get,vector<int> & col_ind_get,vector<int> & row_ptr_get);
+        void make_Constant_Vector();
+        void get_Constant_Vector(vector<double> & constVect_get);
+
+        // Solving the system
+
+        void solveSystem();      
+
 };
 
 class Orthogonal_Mesh_1D: public Mesh_1D                // This class has been created for the purpose of testing
 {
     public:
         Orthogonal_Mesh_1D(char* filename): Mesh_1D(filename){};                // Call the Mesh_1D constructor at the initalization
-        double linearForm(R1 * originPoint, R1 *  otherPoint, Seg segment);
+        double limitCondition(R1* point);            
+        double linearForm(R1* originPoint, Seg segment); 
+        double bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment);
 };
 
 class P1_Lapl_Mesh_1D: public Mesh_1D
 {
     public:
         P1_Lapl_Mesh_1D(char* filename): Mesh_1D(filename){};                // Call the Mesh_1D constructor at the initalization
-        double linearForm(R1 * originPoint, R1 *  otherPoint, Seg segment);
+        double limitCondition(R1* point);            
+        double linearForm(R1* originPoint, Seg segment);
+        double bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment);
 };
 ostream& operator<<(ostream& stream,const Seg& Segment);
 

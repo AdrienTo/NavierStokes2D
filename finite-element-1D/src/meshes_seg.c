@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 #include <cassert>
+#include <suitesparse/umfpack.h>
 
 int Seg::NbSeg = 0;
 
@@ -51,14 +52,15 @@ R1 * Seg::get(int nbVertice) const
     return vertices[nbVertice];
 }
 
-void Seg::show(){
+void Seg::show()
+{
     cout <<"Segment(";
     vertices[0]->show();
     vertices[1]->show();
     cout<<")"<<endl;
-
 }
-void Seg::showRaw(){
+void Seg::showRaw()
+{
     cout <<"SegmentPointsAddresses("  << vertices[0] <<", " << vertices[1] <<")"<<endl;
 
 }
@@ -92,6 +94,7 @@ vector<R1> loadNodes(char* file)  // Generate Nodes from text file
 	    {
 		    meshfile >> xValue >> boundary;
 		    point.set(xValue);
+            point.setBoundary( (int) (boundary !=0 ));
 		    arrayNodes[i] =  point;
 	    }
         meshfile.close();
@@ -103,7 +106,7 @@ vector<R1> loadNodes(char* file)  // Generate Nodes from text file
     }
 }
 
-// 
+
 
 void loadSeg(char* file,vector<R1> & arrayNodes, vector<Seg> &arraySeg,vector<vector<Seg*> > & segInNodes)
 {
@@ -153,9 +156,11 @@ Mesh_1D::Mesh_1D(char* filename)
     
 }
 
-void Mesh_1D::make_Rigidity_Matrix()
+void Mesh_1D::make_Stiffness_Matrix()
 {
-    
+    row_ptr.resize(0);
+    col_ind.resize(0);
+    value.resize(0);
     // Temporary vectors to store one row, in order to store the 
     vector<double> value_temp(Nodes.size(),NAN);                        // The values are initialized at NAN and become real if the value of the matrix is not zero
     vector<int> col_ind_temp;
@@ -176,21 +181,27 @@ void Mesh_1D::make_Rigidity_Matrix()
             // Go through all the nodes of the vertice and store the scalar product
             for (int i=0; i<nbNodesInVertices ; i++)
             {   
-
-                stockNodes = (*itSeg)->get(i);              // Temporary node that is a neighbour of the node (or the node itself) in the vertice (*itSeg)
-                valueLinearForm = linearForm(&Nodes[itNodes-SegmentContainingNodes.begin()],stockNodes,**itSeg);
-                if(isnan(value_temp[stockNodes-&(Nodes[0])]) && fabs(valueLinearForm)>0.000000001 )         // The matrix does not store the zero-values
+                stockNodes = (*itSeg)->get(i);                                                                    // Temporary node that is a neighbour of the node (or the node itself) in the vertice (*itSeg)
+                valueLinearForm = bilinearForm(&Nodes[itNodes-SegmentContainingNodes.begin()],stockNodes,**itSeg);
+                if(isnan(value_temp[stockNodes-&(Nodes[0])]) && fabs(valueLinearForm)>0.000000001 )               // The matrix does not store the zero-values
                 {
-                     col_ind_temp.push_back( ((int) (stockNodes-&(Nodes[0])) ) );                              // The NAN check permits to add the column number only once                         
-                     value_temp[stockNodes-&(Nodes[0])] = 0;        
+                    col_ind_temp.push_back( ((int) (stockNodes-&(Nodes[0])) ) );                                  // The NAN check permits to add the column number only once                         
+                    value_temp[stockNodes-&(Nodes[0])] = 0;        
 
                 }
                 if(fabs(valueLinearForm)>0.000000001)
                 {
-                    value_temp[stockNodes-&(Nodes[0])]+= linearForm(&Nodes[itNodes-SegmentContainingNodes.begin()],stockNodes,**itSeg);
+                    value_temp[stockNodes-&(Nodes[0])]+= bilinearForm(&Nodes[itNodes-SegmentContainingNodes.begin()],stockNodes,**itSeg);
                 }
             }
             
+        }
+
+        // Exact penalty method
+       
+        if(Nodes[itNodes-SegmentContainingNodes.begin()].isBoundary())
+        {
+            value_temp[itNodes-SegmentContainingNodes.begin()]=penalty_coeff;
         }
 
         // Copying the temporary values to the  real vectors
@@ -229,7 +240,44 @@ void Mesh_1D::make_Rigidity_Matrix()
     cout << endl << endl; */
     
 }
-double Orthogonal_Mesh_1D::linearForm(R1 * originPoint, R1 *  otherPoint, Seg segment)
+
+void Mesh_1D::get_Stiffness_Matrix(vector<double> & value_get,vector<int> & col_ind_get,vector<int> & row_ptr_get)
+{
+    value_get = value;
+    col_ind_get = col_ind;
+    row_ptr_get = row_ptr;
+}
+
+void Mesh_1D::make_Constant_Vector()
+{
+    constVect.resize(0);
+    constVect.resize(Nodes.size(),0.);
+     // Go through all the nodes
+    for(vector<vector<Seg*> >::iterator itNodes = SegmentContainingNodes.begin() ; itNodes < SegmentContainingNodes.end(); ++itNodes)
+    {
+        assert(constVect[itNodes-SegmentContainingNodes.begin()] == 0.);
+        if(!Nodes[itNodes-SegmentContainingNodes.begin()].isBoundary())
+        {
+        // Go through all vertices that contains the node 
+            for(vector<Seg*>::iterator itSeg = (*itNodes).begin(); itSeg < (*itNodes).end(); ++itSeg)
+            {
+                constVect[itNodes-SegmentContainingNodes.begin()] += linearForm(&Nodes[itNodes-SegmentContainingNodes.begin()], **itSeg); 
+            }
+        }
+        else
+        {
+            // Exact penalty method
+            constVect[itNodes-SegmentContainingNodes.begin()]  = limitCondition(&Nodes[itNodes-SegmentContainingNodes.begin()])*penalty_coeff;
+        }
+    }
+         
+}
+
+void Mesh_1D::get_Constant_Vector(vector<double> & constVect_get)
+{
+    constVect_get = constVect;
+}
+double Orthogonal_Mesh_1D::bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment)
 {
     if(originPoint == otherPoint)
     {
@@ -240,28 +288,119 @@ double Orthogonal_Mesh_1D::linearForm(R1 * originPoint, R1 *  otherPoint, Seg se
         return 0.;
     }
 }
-double P1_Lapl_Mesh_1D::linearForm(R1 * originPoint, R1 *  otherPoint, Seg segment)
+double Orthogonal_Mesh_1D::limitCondition(R1* point)
+{
+    return 0;
+}          
+double Orthogonal_Mesh_1D::linearForm(R1 * originPoint, Seg segment)
+{
+        return 0.;
+}
+double P1_Lapl_Mesh_1D::bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment)
 {
         double area = fabs( segment[0]->get()-segment[1]->get() );
         double scalar = 0;
         if(originPoint == otherPoint)
         {
-            scalar = 1.;
+            scalar = 1./(area*area);
         }
         else  
         {
-            scalar =-1.;
+            scalar =-1./(area*area);
         }
         
-
         return  scalar*area;
 }
-void Mesh_1D::get_Rigidity_Matrix(vector<double> & value_get,vector<int> & col_ind_get,vector<int> & row_ptr_get)
+double P1_Lapl_Mesh_1D::linearForm(R1 * originPoint, Seg segment)
 {
-    value_get = value;
-    col_ind_get = col_ind;
-    row_ptr_get = row_ptr;
+        double area = fabs( segment[0]->get()-segment[1]->get() );
+        double scalar = originPoint->get();
+        return  scalar*area;
 }
+double P1_Lapl_Mesh_1D::limitCondition(R1* point)
+{
+    return point->get()*2-1;
+}     
+
+void Mesh_1D::solveSystem()
+{
+    
+    int sizeMatrix = Nodes.size();
+    int numberNonZero = value.size();
+    assert(numberNonZero == col_ind.size());
+    if(sizeMatrix == 0)
+    {
+        throw std::runtime_error("Erreur: tentative de résolution du problème sans avoir chargé de maillage (nbNoeuds = 0).");
+    }
+
+    // Getting the CRS Matrix
+
+    if(value.size() == 0 || col_ind.size() == 0 || row_ptr.size() == 0)
+    {
+        throw std::runtime_error("Erreur: tentative de résolution du problème sans avoir calculé la matrice de rigidité (matrice de rigidité de taille nulle).");
+    }
+
+
+    double * valArray = &value[0];
+    int * colArray = &col_ind[0], * rowArray = &row_ptr[0];
+
+    // Getting the constant values of the system
+
+    if(constVect.size() == 0)
+    {
+        throw std::runtime_error("Erreur: tentative de résolution du problème sans avoir calculé la partie constante du système (vecteur constant de taille nulle).");
+    }
+
+
+    
+    double * constArray =  &constVect[0];
+
+    // Array that store the result
+
+    double result[sizeMatrix];
+
+    double *null = ( double * ) NULL;
+    void *Numeric;
+    int status;
+    void *Symbolic;
+    for(int i=0; i< numberNonZero; i++)
+    {
+        cout << valArray[i] << " ";
+    }
+    cout << endl << endl;
+    for(int i=0; i< numberNonZero; i++)
+    {
+        cout << colArray[i]<< " ";
+    }
+    cout << endl<< endl << numberNonZero << endl;
+
+    //
+    //  Carry out the symbolic factorization.
+    //
+      status = umfpack_di_symbolic ( sizeMatrix, sizeMatrix, rowArray, colArray, valArray, &Symbolic, null, null );
+    //
+    //  Use the symbolic factorization to carry out the numeric factorization.
+    //
+      status = umfpack_di_numeric (rowArray, colArray,valArray, Symbolic, &Numeric, null, null );
+    //
+    //  Free the memory associated with the symbolic factorization.
+    //
+      umfpack_di_free_symbolic ( &Symbolic );
+    //
+    //  Solve the linear system.
+    //
+      status = umfpack_di_solve ( UMFPACK_A, rowArray, colArray, valArray, result, constArray, Numeric, null, null );
+    //
+    //  Free the memory associated with the numeric factorization.
+    //
+      umfpack_di_free_numeric ( &Numeric );
+    cout<<endl;
+    for(int i=0; i<sizeMatrix; i++)
+    {
+        cout << Nodes[i].get() << " " << result[i]<< " "<< constArray[i] <<endl;
+    }
+}
+
 void exportGnuPlot(vector<Seg> inputSeg, string file){
     ofstream plotfile;
     plotfile.open(file.c_str());

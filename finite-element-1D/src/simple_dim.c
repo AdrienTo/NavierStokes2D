@@ -1,5 +1,5 @@
 #include "simple_dim.h"
-
+#include <cassert> 
 
 
 /////////////////////////
@@ -8,13 +8,16 @@
 
 R1::R1()
 {};
-R1::R1(double newX)
+R1::R1(double newX, int isBoundary)
 {
+    assert(fabs(isBoundary) <=1);
     x = newX;
+    label = isBoundary;
 }
 R1::R1(const R1& point)
 {
     x = point.get();
+    label = point.isBoundary();   
 }
 
 double R1::get() const
@@ -27,7 +30,7 @@ void R1::set(double newX)
     x = newX;
 }
 
-void R1::show()
+void R1::show() const
 {
     cout << "("<< x << ")"<<endl;
 }
@@ -39,9 +42,18 @@ double distR1(R1 point1, R1 point2)
 }
 bool compR1(R1 point1, R1 point2)
 {
-    return (point1.get() == point2.get()) ;
+    return ( (point1.get() == point2.get()) && (point1.isBoundary() == point2.isBoundary() )  ) ;
 }
 
+int R1::isBoundary() const
+{
+    return label;
+}
+void R1::setBoundary(int isBoundary)
+{
+    assert(isBoundary == 1 || isBoundary == 0);
+    label = isBoundary;
+}
 ////////////
 //Operators
 ////////////
@@ -49,11 +61,12 @@ bool compR1(R1 point1, R1 point2)
 void R1::operator=(const R1& copyVect )
 {
     x = copyVect.get();
+    label = copyVect.isBoundary();
 }
 
 ostream& operator<<(ostream& stream,const R1 &pointPrint)
 {
-    stream <<"Point("<<pointPrint.get()<<")";
+    stream <<"Point(v:" <<pointPrint.get()<<" b:" << pointPrint.isBoundary()<<")";
     return stream; 
 }
 
@@ -74,6 +87,7 @@ double R1::operator[](int index)
     }
     return x;
 }
+
 R1 operator*(double lambda, R1 point)
 {
     R1  newVect(point.x*lambda);

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstring>
 #include <cmath>
+#include <cassert> 
 using namespace std;
  
 void test_creation_R1()

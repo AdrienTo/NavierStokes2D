@@ -8,14 +8,18 @@ class R1
 {
 private:
     double x;
+    int label;
 public: 
     R1();
-    R1(double newX);
+    R1(double newX, int isBoundary =-1);
     R1(const R1&);
     double get() const;
-
+    int isBoundary() const;
+    
     void set(double newX);
-    void show();
+
+    void setBoundary(int isBoundary);
+    void show() const;
     void operator=(const R1& copyVect);
     friend ostream& operator<<(ostream& stream,const R1& pointPrint);
     R1 operator+(R1 addVect);
