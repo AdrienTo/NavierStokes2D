@@ -8,11 +8,10 @@
 
 // Class representing a vertice in dimension 1
 
-class Seg
+class Seg // Va être remplacé par un triangle
 {
 private:
     R1 * vertices[2];
-
     static int NbSeg;
 public:
     Seg();
@@ -43,10 +42,10 @@ class Mesh_1D
         // Mesh-related vectors
         vector<R1> Nodes;
         vector<Seg> Segments;
-        vector<vector<Seg*> > SegmentContainingNodes;   // Given the number of a node, it returns the vector of pointer to segments that have this node
+        vector<vector<Seg*> > SegmentContainingNodes;   // Given the number of a node, it returns the vector of pointer to segments that have this node (using the same index as Nodes)
         vector<R1*> Boundaries;                         // Nodes in the boundaries        
 
-        // Stiffness matrix vectors (the matrix is stored in the format CRS)
+        // Stiffness matrix vectors (the matrix is stored in the format Compression Row Storage)
         vector<double> value;
         vector<int> col_ind, row_ptr;
 
@@ -56,11 +55,13 @@ class Mesh_1D
         // Solution of the problem
         vector<double> Solution;
 
-        // Penalty coefficient
+
 
     public:
+        // Penalty coefficient
         static const double penalty_coeff = 10000000000;
-        // Loading the ".msh" file
+       
+       // Loading the ".msh" file
         Mesh_1D(char* filename);
 
         // Defining the Dirichlet problem :

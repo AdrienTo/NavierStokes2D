@@ -314,12 +314,12 @@ double P1_Lapl_Mesh_1D::bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg seg
 double P1_Lapl_Mesh_1D::linearForm(R1 * originPoint, Seg segment)
 {
         double area = fabs( segment[0]->get()-segment[1]->get() );
-        double scalar = originPoint->get();
+        double scalar = 1./2.;
         return  scalar*area;
 }
 double P1_Lapl_Mesh_1D::limitCondition(R1* point)
 {
-    return point->get()*2-1;
+    return 1;
 }     
 
 void Mesh_1D::solveSystem()

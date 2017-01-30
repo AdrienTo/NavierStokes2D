@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cmath>
 using namespace std;
-class R1
+class R1 
 {
 private:
     double x;
