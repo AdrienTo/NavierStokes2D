@@ -1,0 +1,1 @@
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++    -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/NavierStokes2D.dir/main.cpp.o CMakeFiles/NavierStokes2D.dir/matrix.cpp.o CMakeFiles/NavierStokes2D.dir/Mesh1D.cpp.o CMakeFiles/NavierStokes2D.dir/Discretization.cpp.o  -o NavierStokes2D  

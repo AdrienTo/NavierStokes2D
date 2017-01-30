@@ -1,7 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
+
 #include "matrix.hpp"
+#include "Mesh1D.hpp"
 
 int main(){
 
@@ -35,6 +37,8 @@ int main(){
 	std::cout << mat2 * mat1 << std::endl;
 	std::cout << mat1[3] << std::endl;
 	std::cout << mat2(1, 1) << std::endl;
+
+	Mesh1D mesh(100);
 
 	std::cout << "___END___" << std::endl;
 

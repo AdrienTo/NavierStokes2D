@@ -8,8 +8,15 @@ public:
 	Mesh1D(int nm); // nm = number of mesh (= ne in 1D)
 	Mesh1D(std::string str);
 	virtual ~Mesh1D();
+	double operator[](int i);
 
 	void writeMeshFile(std::string str);
+	int getNumVertex() const;
+	int getNumEdge() const;
+	std::pair<int, int> getVertexIndexPair(int ei);
+	double getVertexCoordinate(int vi);
+	double getEdgeLength(int ei);
+
 
 private:
 

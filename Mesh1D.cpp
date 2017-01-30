@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
+#include <cmath>
 
 #include "Mesh1D.hpp"
 
@@ -72,7 +73,32 @@ Mesh1D::~Mesh1D() {
 	delete bv;
 }
 
+double Mesh1D::operator[](int i) {
+	return this->vi2vc[i];
+}
 
 void Mesh1D::writeMeshFile(std::string str) {
 	std::cout << "tbd" << std::endl;
+}
+
+int Mesh1D::getNumVertex() const {
+	return this->nv;
+}
+
+int Mesh1D::getNumEdge() const {
+	return this->ne;
+}
+
+std::pair<int, int> Mesh1D::getVertexIndexPair(int ei) {
+	return this->ei2vip[ei];
+}
+
+double Mesh1D::getVertexCoordinate(int vi) {
+	return this->vi2vc[vi];
+}
+double Mesh1D::getEdgeLength(int ei) {
+	std::pair<int, int> eip = this->getVertexIndexPair(ei);
+	double xa = this->getVertexCoordinate(eip.first);
+	double xb = this->getVertexCoordinate(eip.second);
+	return std::fabs(xa - xb);
 }
