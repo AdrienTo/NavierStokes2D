@@ -4,7 +4,8 @@
 #include <stdexcept>
 #include <string>
 #include <cassert>
-#include <suitesparse/umfpack.h>
+// #include <suitesparse/umfpack.h>
+#include <umfpack.h>
 
 int Seg::NbSeg = 0;
 
@@ -167,11 +168,17 @@ void Mesh_1D::make_Stiffness_Matrix()
     
 
 
-    int nbNodesInVertices = Seg::nbNodes, indiceOfMatrix=0;
+    // int nbNodesInVertices = Seg::nbNodes, indiceOfMatrix=0;
+    int nbNodesInVertices = 2 * Seg::nbNodes - 1, indiceOfMatrix=0;
+
     double valueLinearForm=NAN;
+
     R1 * stockNodes;
+
     row_ptr.push_back(indiceOfMatrix);
+
     // Go through all the nodes
+
     for(vector<vector<Seg*> >::iterator itNodes = SegmentContainingNodes.begin() ; itNodes < SegmentContainingNodes.end(); ++itNodes)
     {
 
@@ -181,18 +188,22 @@ void Mesh_1D::make_Stiffness_Matrix()
             // Go through all the nodes of the vertice and store the scalar product
             for (int i=0; i<nbNodesInVertices ; i++)
             {   
+
                 stockNodes = (*itSeg)->get(i);                                                                    // Temporary node that is a neighbour of the node (or the node itself) in the vertice (*itSeg)
                 valueLinearForm = bilinearForm(&Nodes[itNodes-SegmentContainingNodes.begin()],stockNodes,**itSeg);
+                
                 if(isnan(value_temp[stockNodes-&(Nodes[0])]) && fabs(valueLinearForm)>0.000000001 )               // The matrix does not store the zero-values
                 {
                     col_ind_temp.push_back( ((int) (stockNodes-&(Nodes[0])) ) );                                  // The NAN check permits to add the column number only once                         
                     value_temp[stockNodes-&(Nodes[0])] = 0;        
 
                 }
+
                 if(fabs(valueLinearForm)>0.000000001)
                 {
                     value_temp[stockNodes-&(Nodes[0])]+= bilinearForm(&Nodes[itNodes-SegmentContainingNodes.begin()],stockNodes,**itSeg);
                 }
+
             }
             
         }
@@ -311,6 +322,23 @@ double P1_Lapl_Mesh_1D::bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg seg
         
         return  scalar*area;
 }
+
+double P2_Lapl_Mesh_1D::bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment)
+{
+        double area = fabs( segment[0]->get()-segment[1]->get() );
+        double scalar = 0;
+        if(originPoint == otherPoint)
+        {
+            scalar = 1./(area*area);
+        }
+        else  
+        {
+            scalar =-1./(area*area);
+        }
+        
+        return  scalar*area;
+}
+
 double P1_Lapl_Mesh_1D::linearForm(R1 * originPoint, Seg segment)
 {
         double area = fabs( segment[0]->get()-segment[1]->get() );
