@@ -25,6 +25,7 @@ public:
     R1 * get(int nbVertice) const;
     void show();
     void showRaw();
+    bool find(R1);
 
     static const int nbNodes = 2;
     static int Nb();
@@ -106,6 +107,21 @@ class P1_Lapl_Mesh_1D: public Mesh_1D
         double linearForm(R1* originPoint, Seg segment);
         double bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment);
 };
+
+
+class P2_Lapl_Mesh_1D: public Mesh_1D
+{
+    private:
+        int originalNbNodes;
+        int newNbNodes;
+    public:
+        P2_Lapl_Mesh_1D(char* filename);                // Call the Mesh_1D constructor at the initalization
+        adaptMeshForP2();
+        double limitCondition(R1* point);            
+        double linearForm(R1* originPoint, Seg segment);
+        double bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment);
+};
+
 ostream& operator<<(ostream& stream,const Seg& Segment);
 
 vector<R1> loadNodes(char* file) ;

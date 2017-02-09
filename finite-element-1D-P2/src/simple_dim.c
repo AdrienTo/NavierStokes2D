@@ -42,7 +42,8 @@ double distR1(R1 point1, R1 point2)
 }
 bool compR1(R1 point1, R1 point2)
 {
-    return ( (point1.get() == point2.get()) && (point1.isBoundary() == point2.isBoundary() )  ) ;
+    // return ( (point1.get() == point2.get()) && (point1.isBoundary() == point2.isBoundary() )  ) ;
+    return (distR1(point1, point2) < 1.0e-15) ;
 }
 
 int R1::isBoundary() const

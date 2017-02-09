@@ -26,7 +26,6 @@ public:
     double operator,(R1 scalarVect);
     double operator[](int index);
     friend R1 operator*(double lambda, R1 point);
-
 };
 
 double distR1(R1 point1, R1 point2);
