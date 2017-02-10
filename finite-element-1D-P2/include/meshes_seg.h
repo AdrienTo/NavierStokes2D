@@ -114,9 +114,12 @@ class P2_Lapl_Mesh_1D: public Mesh_1D
     private:
         int originalNbNodes;
         int newNbNodes;
+        vector<Seg*> SegmentContainingInteriorPoint;
     public:
         P2_Lapl_Mesh_1D(char* filename);                // Call the Mesh_1D constructor at the initalization
-        adaptMeshForP2();
+        adapthForP2();
+        // adaptMeshForP2();
+        void make_Stiffness_Matrix();
         double limitCondition(R1* point);            
         double linearForm(R1* originPoint, Seg segment);
         double bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment);

@@ -346,11 +346,22 @@ P2_Lapl_Mesh_1D::P2_Lapl_Mesh_1D(char* filename)
 {
     Nodes = loadNodes(filename);
     loadSeg(filename, Nodes,Segments,SegmentContainingNodes);
-    originalNbNodes = Nodes.size();
-    newNbNodes = originalNbNodes - 1;
-    adaptMeshForP2(); 
+    this->originalNbNodes = Nodes.size();
+    this->newNbNodes = originalNbNodes - 1;
+    adaptForP2(); 
 }
 
+P2_Lapl_Mesh_1D::adaptForP2()
+{
+    for (vector<Seg>::iterator itSeg = this->Segments.begin(); itSeg < this->Segments.end(); ++itSeg)
+    {   
+        R1 tempR1(1. / 2. * ((*itSeg)->get(0)) + ((*itSeg)->get(1))); // complicated 
+        this->Nodes.push_back(tempR1); // extend Nodes size: originalNbNodes -> originalNbNodes + newNbNodes
+        this->SegmentContainingInteriorPoint.push_back(&(*itSeg)); // map: new nodes index -> segment where it is
+    }
+}
+
+/*
 P2_Lapl_Mesh_1D::adaptMeshForP2()
 {
     vector<Seg> tempSegs;
@@ -389,11 +400,12 @@ P2_Lapl_Mesh_1D::adaptMeshForP2()
 
 
 }
+*/
 
 
-double P2_Lapl_Mesh_1D::bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment)
+double P2_Lapl_Mesh_1D::bilinearForm(R1* originPoint, R1*  otherPoint, Seg segment)
 {
-        double area = fabs( segment[0]->get()-segment[1]->get() );
+        double area = fabs(segment[0]->get() - segment[1]->get());
         double scalar = 0;
         if(originPoint == otherPoint)
         {
@@ -418,78 +430,92 @@ double P2_Lapl_Mesh_1D::limitCondition(R1* point)
     return 1;
 }     
 
-void Mesh_1D::make_Stiffness_Matrix()
+void P2_Lapl_Mesh_1D::make_Stiffness_Matrix()
 {
     row_ptr.resize(0);
     col_ind.resize(0);
     value.resize(0);
-    // Temporary vectors to store one row, in order to store the 
-    vector<double> value_temp(Nodes.size(),NAN);                        // The values are initialized at NAN and become real if the value of the matrix is not zero
+
+    vector<double> value_temp(this->Nodes.size(), NAN);
     vector<int> col_ind_temp;
-    
 
-
-    int nbNodesInVertices = Seg::nbNodes, indiceOfMatrix=0;
-    // int nbNodesInVertices = 2 * Seg::nbNodes - 1, indiceOfMatrix=0;
-
-    double valueLinearForm=NAN;
-
-    R1 * stockNodes;
+    int indiceOfMatrix=0;
+    double valueLinearForm=NAN; // initialisation
+    R1* stockNode;
 
     row_ptr.push_back(indiceOfMatrix);
 
+
     // Go through all the nodes
 
-    for(vector<vector<Seg*> >::iterator itNodes = SegmentContainingNodes.begin() ; itNodes < SegmentContainingNodes.end(); ++itNodes)
-    {
+    int indexNode = 0;
+    for (vector<R1>::iterator itNode = this->Nodes.begin(); itNode < this->Nodes.end(); ++itNode)
+    {   
 
-        // Go through all vertices that contains the node 
-        for(vector<Seg*>::iterator itSeg = (*itNodes).begin(); itSeg < (*itNodes).end(); ++itSeg)
+        if (indexNode < this->originalNbNodes) // CASE 1: for original nodes
         {
-            // Go through all the nodes of the vertice and store the scalar product
-            for (int i=0; i<nbNodesInVertices ; i++)
-            {   
-
-                stockNodes = (*itSeg)->get(i);                                                                    // Temporary node that is a neighbour of the node (or the node itself) in the vertice (*itSeg)
-                valueLinearForm = bilinearForm(&Nodes[itNodes-SegmentContainingNodes.begin()],stockNodes,**itSeg);
-
-                if(isnan(value_temp[stockNodes-&(Nodes[0])]) && fabs(valueLinearForm)>0.000000001 )               // The matrix does not store the zero-values
-                {
-                    col_ind_temp.push_back( ((int) (stockNodes-&(Nodes[0])) ) );                                  // The NAN check permits to add the column number only once                         
-                    value_temp[stockNodes-&(Nodes[0])] = 0;        
+            for(vector<Seg*>::iterator itSeg = (this->SegmentContainingNodes.at(indexNode)).begin(); itSeg < (this->SegmentContainingNodes.at(indexNode)).end(); ++itSeg)
+            {
+                for (int i=0; i < 2; i++) // ATTENTION: need to double-count for self overlap calculation (diagonal elements)
+                {   
+                    stockNode = (*itSeg)->get(i);
+                    valueLinearForm = bilinearForm(&(this->Nodes.at(indexNode)), &stockNodes, *itSeg);
+                    if (isnan(value_temp.at(stockNodes - &(Nodes.at(0)))) && fabs(valueLinearForm) > 1.0e-10)
+                    {
+                        col_ind_temp.push_back(((int) (stockNodes - &(Nodes.at(0)))));
+                        value_temp.at(stockNodes - &(Nodes.at(0))) = 0;
+                    }
+                    if(fabs(valueLinearForm) > 1.0e-10)
+                    {
+                        value_temp.at(stockNodes - &(Nodes.at(0))) += bilinearForm(&(this->Nodes.at(indexNode)), &stockNodes, *itSeg);
+                    }
 
                 }
-
-                if(fabs(valueLinearForm)>0.000000001)
-                {
-                    value_temp[stockNodes-&(Nodes[0])]+= bilinearForm(&Nodes[itNodes-SegmentContainingNodes.begin()],stockNodes,**itSeg);
-                }
-
             }
-            
+        }    
+        else // CASE 2: for new nodes, that is, interior points
+        {
+            for (int i=0; i < 2; i++)
+                {   
+                    stockNodes = this->SegmentContainingInteriorPoint.at(indexNode - this->originalNbNodes)->get(i); // Temporary node that is a neighbour of the node (or the node itself) in the vertice (*itSeg)
+                    valueLinearForm = bilinearForm(&Nodes[itNodes - SegmentContainingNodes.begin()], stockNodes, **itSeg);
+                    if (isnan(value_temp[stockNodes - &(Nodes[0])]) && fabs(valueLinearForm) > 0.000000001) // The matrix does not store the zero-values
+                    {
+                        col_ind_temp.push_back(((int) (stockNodes - &(Nodes[0])))); // The NAN check permits to add the column number only once                         
+                        value_temp[stockNodes-&(Nodes[0])] = 0;
+                    }
+                    if(fabs(valueLinearForm) > 0.000000001)
+                    {
+                        value_temp.at(stockNodes - &(Nodes[0])) += bilinearForm(&Nodes[itNodes - SegmentContainingNodes.begin()], stockNodes, **itSeg);
+                    }
+
+                }
+
+        }
+        
+        // Exact penalty method
+        if(this->Nodes.at(indexNode).isBoundary())
+        {
+            value_temp.at(indexNode) = penalty_coeff; // huge number
         }
 
-        // Exact penalty method
-       
-        if(Nodes[itNodes-SegmentContainingNodes.begin()].isBoundary())
-        {
-            value_temp[itNodes-SegmentContainingNodes.begin()]=penalty_coeff;
-        }
+        // following is for a sparse matrix
+        // keep only non-zero element
 
         // Copying the temporary values to the  real vectors
-
         for(vector<int>::iterator itIndexNode = col_ind_temp.begin(); itIndexNode < col_ind_temp.end(); ++itIndexNode)
         {
-            indiceOfMatrix++;  
-            value.push_back(value_temp[*itIndexNode]);
-            value_temp[*itIndexNode] =  NAN;            // Setting back the values to NAN
+            indiceOfMatrix += 1; // count how many there are in a target row
+            value.push_back(value_temp.at(*itIndexNode));
+            value_temp.at(*itIndexNode) =  NAN; // initialising by NAN for the next iteration
         }
     
         // Reset the temporary values
-        col_ind.insert(col_ind.end(),col_ind_temp.begin(),col_ind_temp.end());
-        col_ind_temp.resize(0);
-        row_ptr.push_back(indiceOfMatrix);
+        col_ind.insert(col_ind.end(), col_ind_temp.begin(), col_ind_temp.end());
+        col_ind_temp.clear(); // initialising for the next iteration
+        row_ptr.push_back(indiceOfMatrix); // number of non-zero element in a target row
 
+    indexNode += 1;
     }
     assert(col_ind.size() ==  value.size());
     
