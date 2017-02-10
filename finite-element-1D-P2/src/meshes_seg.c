@@ -65,6 +65,17 @@ void Seg::showRaw()
     cout <<"SegmentPointsAddresses("  << vertices[0] <<", " << vertices[1] <<")"<<endl;
 
 }
+
+void Seg::addInteriorPoint(R1& ip)
+{
+    this->interiorPoints.push_back(&ip);
+}
+
+R1* Seg::getInteriorPoint(int i) const
+{
+    return this->interiorPoints.at(i);
+}
+
 R1 * Seg::operator[](int nbVert) const
 {
     assert(nbVert < nbNodes);
@@ -342,22 +353,23 @@ double P1_Lapl_Mesh_1D::limitCondition(R1* point)
 //
 
 
-P2_Lapl_Mesh_1D::P2_Lapl_Mesh_1D(char* filename)
+P2_Lapl_Mesh_1D::P2_Lapl_Mesh_1D(char* filename) : Mesh_1D(filename)
 {
-    Nodes = loadNodes(filename);
-    loadSeg(filename, Nodes,Segments,SegmentContainingNodes);
+    // Nodes = loadNodes(filename);
+    // loadSeg(filename, Nodes,Segments,SegmentContainingNodes);
     this->originalNbNodes = Nodes.size();
     this->newNbNodes = originalNbNodes - 1;
     adaptForP2(); 
 }
 
-P2_Lapl_Mesh_1D::adaptForP2()
+void P2_Lapl_Mesh_1D::adaptForP2()
 {
     for (vector<Seg>::iterator itSeg = this->Segments.begin(); itSeg < this->Segments.end(); ++itSeg)
     {   
-        R1 tempR1(1. / 2. * ((*itSeg)->get(0)) + ((*itSeg)->get(1))); // complicated 
+        R1 tempR1(0.5 * (*((*itSeg).get(0)) + *((*itSeg).get(1)))); // complicated 
         this->Nodes.push_back(tempR1); // extend Nodes size: originalNbNodes -> originalNbNodes + newNbNodes
         this->SegmentContainingInteriorPoint.push_back(&(*itSeg)); // map: new nodes index -> segment where it is
+        (*itSeg).addInteriorPoint(this->Nodes.back());
     }
 }
 
@@ -402,21 +414,36 @@ P2_Lapl_Mesh_1D::adaptMeshForP2()
 }
 */
 
-
 double P2_Lapl_Mesh_1D::bilinearForm(R1* originPoint, R1*  otherPoint, Seg segment)
 {
-        double area = fabs(segment[0]->get() - segment[1]->get());
-        double scalar = 0;
-        if(originPoint == otherPoint)
-        {
-            scalar = 1./(area*area);
-        }
-        else  
-        {
-            scalar =-1./(area*area);
-        }
-        
-        return  scalar*area;
+    double area = fabs(segment[0]->get() - segment[1]->get());
+    double scalar = 0.;
+    if(originPoint == otherPoint)
+    {
+        scalar = 2. / 15.;
+    }
+    else  
+    {
+        scalar = -1. / 30.;
+    }
+    
+    return scalar / area;
+}
+
+double P2_Lapl_Mesh_1D::bilinearForm_2(R1* originPoint, R1* otherPoint, Seg segment)
+{
+    double area = fabs(segment[0]->get() - segment[1]->get());
+    double scalar = 0.;
+    scalar = 1. / 15.;
+    return scalar / area;
+}
+
+double P2_Lapl_Mesh_1D::bilinearForm_3(R1* originPoint, R1* otherPoint, Seg segment)
+{
+    double area = fabs(segment[0]->get() - segment[1]->get());
+    double scalar = 0.;
+    scalar = 8. / 15.;
+    return scalar / area;
 }
 
 double P2_Lapl_Mesh_1D::linearForm(R1 * originPoint, Seg segment)
@@ -436,61 +463,65 @@ void P2_Lapl_Mesh_1D::make_Stiffness_Matrix()
     col_ind.resize(0);
     value.resize(0);
 
+    vector<int> col_ind, row_ptr; 
     vector<double> value_temp(this->Nodes.size(), NAN);
     vector<int> col_ind_temp;
 
     int indiceOfMatrix=0;
     double valueLinearForm=NAN; // initialisation
     R1* stockNode;
+    R1* stockInteriorNode;
+    Seg* stockSeg;
 
     row_ptr.push_back(indiceOfMatrix);
 
-
-    // Go through all the nodes
-
+    // following iteration is based on the node index
+    // because matrix is of size nbNodes * nbNodes
     int indexNode = 0;
     for (vector<R1>::iterator itNode = this->Nodes.begin(); itNode < this->Nodes.end(); ++itNode)
-    {   
-
+    {  
         if (indexNode < this->originalNbNodes) // CASE 1: for original nodes
         {
             for(vector<Seg*>::iterator itSeg = (this->SegmentContainingNodes.at(indexNode)).begin(); itSeg < (this->SegmentContainingNodes.at(indexNode)).end(); ++itSeg)
             {
+                // interaction between original nodes
                 for (int i=0; i < 2; i++) // ATTENTION: need to double-count for self overlap calculation (diagonal elements)
                 {   
                     stockNode = (*itSeg)->get(i);
-                    valueLinearForm = bilinearForm(&(this->Nodes.at(indexNode)), &stockNodes, *itSeg);
-                    if (isnan(value_temp.at(stockNodes - &(Nodes.at(0)))) && fabs(valueLinearForm) > 1.0e-10)
+                    valueLinearForm = bilinearForm(&(this->Nodes.at(indexNode)), stockNode, **itSeg); // accordance will be checked by "address"
+                    if (isnan(value_temp.at(stockNode - &(Nodes.at(0)))) && fabs(valueLinearForm) > 1.0e-10) // frist modification
                     {
-                        col_ind_temp.push_back(((int) (stockNodes - &(Nodes.at(0)))));
-                        value_temp.at(stockNodes - &(Nodes.at(0))) = 0;
+                        col_ind_temp.push_back(((int) (stockNode - &(Nodes.at(0))))); // address difference !!!DANGEROUS!!! 
+                        value_temp.at(stockNode - &(Nodes.at(0))) = valueLinearForm; 
                     }
-                    if(fabs(valueLinearForm) > 1.0e-10)
+                    if(fabs(valueLinearForm) > 1.0e-10) // case double count modification
                     {
-                        value_temp.at(stockNodes - &(Nodes.at(0))) += bilinearForm(&(this->Nodes.at(indexNode)), &stockNodes, *itSeg);
+                        value_temp.at(stockNode - &(Nodes.at(0))) += valueLinearForm;
                     }
-
                 }
+
+                // interaction between original nodes and new (interior) nodes
+                stockInteriorNode = (*itSeg)->getInteriorPoint(0);
+                valueLinearForm = bilinearForm_2(&(this->Nodes.at(indexNode)), stockInteriorNode, **itSeg); // to be defined
+                col_ind_temp.push_back(((int) (stockInteriorNode - &(Nodes.at(0))))); // address difference !!!DANGEROUS!!! 
+                value_temp.at(stockNode - &(Nodes.at(0))) = valueLinearForm;       
             }
         }    
         else // CASE 2: for new nodes, that is, interior points
         {
+            stockSeg = this->SegmentContainingInteriorPoint.at(indexNode - this->originalNbNodes); // segment where the point (node) is
+            // interaction between new (interior) nodes and original nodes
             for (int i=0; i < 2; i++)
-                {   
-                    stockNodes = this->SegmentContainingInteriorPoint.at(indexNode - this->originalNbNodes)->get(i); // Temporary node that is a neighbour of the node (or the node itself) in the vertice (*itSeg)
-                    valueLinearForm = bilinearForm(&Nodes[itNodes - SegmentContainingNodes.begin()], stockNodes, **itSeg);
-                    if (isnan(value_temp[stockNodes - &(Nodes[0])]) && fabs(valueLinearForm) > 0.000000001) // The matrix does not store the zero-values
-                    {
-                        col_ind_temp.push_back(((int) (stockNodes - &(Nodes[0])))); // The NAN check permits to add the column number only once                         
-                        value_temp[stockNodes-&(Nodes[0])] = 0;
-                    }
-                    if(fabs(valueLinearForm) > 0.000000001)
-                    {
-                        value_temp.at(stockNodes - &(Nodes[0])) += bilinearForm(&Nodes[itNodes - SegmentContainingNodes.begin()], stockNodes, **itSeg);
-                    }
-
-                }
-
+            {   
+                stockNode = stockSeg->get(i); // obtain edge node of the segement
+                valueLinearForm = bilinearForm_2(&(this->Nodes.at(indexNode)), stockNode, *stockSeg);
+                col_ind_temp.push_back(((int) (stockNode - &(Nodes.at(0))))); // address difference !!!DANGEROUS!!! 
+                value_temp.at(stockNode - &(Nodes.at(0))) = valueLinearForm; 
+            }
+            // interaction between new (interior) nodes
+            valueLinearForm = bilinearForm_3(&(*itNode), &(*itNode), *stockSeg);
+            col_ind_temp.push_back(((int) (&(*itNode) - &(Nodes.at(0))))); // address difference !!!DANGEROUS!!! 
+            value_temp.at(&(*itNode) - &(Nodes.at(0))) = valueLinearForm; 
         }
         
         // Exact penalty method
@@ -515,8 +546,11 @@ void P2_Lapl_Mesh_1D::make_Stiffness_Matrix()
         col_ind_temp.clear(); // initialising for the next iteration
         row_ptr.push_back(indiceOfMatrix); // number of non-zero element in a target row
 
+    // increment of node index
     indexNode += 1;
+
     }
+
     assert(col_ind.size() ==  value.size());
     
 }

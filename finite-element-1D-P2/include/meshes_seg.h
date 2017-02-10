@@ -12,6 +12,7 @@ class Seg // Va être remplacé par un triangle
 {
 private:
     R1 * vertices[2];
+    vector<R1*> interiorPoints;
     static int NbSeg;
 public:
     Seg();
@@ -26,6 +27,9 @@ public:
     void show();
     void showRaw();
     bool find(R1);
+
+    void addInteriorPoint(R1& ip);
+    R1* getInteriorPoint(int i) const;
 
     static const int nbNodes = 2;
     static int Nb();
@@ -116,13 +120,15 @@ class P2_Lapl_Mesh_1D: public Mesh_1D
         int newNbNodes;
         vector<Seg*> SegmentContainingInteriorPoint;
     public:
-        P2_Lapl_Mesh_1D(char* filename);                // Call the Mesh_1D constructor at the initalization
-        adapthForP2();
+        P2_Lapl_Mesh_1D(char* filename);
+        void adaptForP2();
         // adaptMeshForP2();
         void make_Stiffness_Matrix();
         double limitCondition(R1* point);            
         double linearForm(R1* originPoint, Seg segment);
         double bilinearForm(R1 * originPoint, R1 *  otherPoint, Seg segment);
+        double bilinearForm_2(R1 * originPoint, R1 *  otherPoint, Seg segment);
+        double bilinearForm_3(R1 * originPoint, R1 *  otherPoint, Seg segment);
 };
 
 ostream& operator<<(ostream& stream,const Seg& Segment);
