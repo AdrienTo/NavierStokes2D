@@ -79,6 +79,8 @@ void R2::operator=(const R2& copyVect )
 {
     x = copyVect.getX();
     y = copyVect.getY();
+    label[0]=copyVect.getBoundary(0);
+    label[1]=copyVect.getBoundary(1);
 }
 
 ostream& operator<<(ostream& stream,const R2 &pointPrint)

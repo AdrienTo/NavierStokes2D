@@ -5,6 +5,7 @@
 #include <string>
 #include <cassert>
 #include <suitesparse/umfpack.h>
+#include <algorithm>
 
 int Tri::NbTri = 0;
 
@@ -71,7 +72,7 @@ double Tri::area()
     double x1 = vertices[0]->getX(), x2 = vertices[1]->getX(), x3 = vertices[2]->getX();
     double y1 = vertices[0]->getY(), y2 = vertices[1]->getY(), y3 = vertices[2]->getY();
     
-    return fabs((x2-x1)*(y3-y1)-(x3-x1)*(y2-y1));
+    return fabs((x2-x1)*(y3-y1)-(x3-x1)*(y2-y1))/2.;
 }
 R2 * Tri::operator[](int nbVert) const
 {
@@ -101,6 +102,7 @@ vector<R2> loadNodes(char* file)  // Generate Nodes from text file
 		    meshfile >> xValue>>yValue>> boundary;  // Read the coordinates from the file
 		    point.setX(xValue);
 		    point.setY(yValue);
+            point.setBoundary(0,-1);
             if(boundary!=0)
             {
                 point.setBoundary(0, boundary);
@@ -120,7 +122,8 @@ vector<R2> loadNodes(char* file)  // Generate Nodes from text file
 	    for(int i = 0; i<nbBound;i++)
 	    {
 		    meshfile >> triangle1 >> triangle2 >> boundary;  // Read the coordinates from the file
-            if(arrayNodes[triangle1-1].getBoundary(0)!=boundary && arrayNodes[triangle1-1].getBoundary(1) != boundary)
+
+            if( arrayNodes[triangle1-1].getBoundary(0) != boundary && arrayNodes[triangle1-1].getBoundary(1) != boundary )
             {
                 assert(arrayNodes[triangle1-1].getBoundary(0) != -1 );
                 assert(arrayNodes[triangle1-1].getBoundary(1) == -1 );
@@ -153,7 +156,7 @@ void loadTri(char* file,vector<R2> & arrayNodes, vector<Tri> &arrayTri,vector<ve
     {
         throw std::runtime_error("Impossible d'ouvrir le fichier: "+( (string) file) );
     }
-    int nbVertice, nbTri, nbLine, boundary, tri1, tri2, tri3;
+    int nbVertice, nbTri, nbLine, boundary, point1, point2, point3;
     // First line parser
     meshfile >> nbVertice >> nbTri >> nbLine;
 
@@ -172,16 +175,16 @@ void loadTri(char* file,vector<R2> & arrayNodes, vector<Tri> &arrayTri,vector<ve
     // Reading the vertices, linking with the triangles
     for(int i =0; i<nbTri; i++)
     {
-        meshfile >> tri1 >> tri2 >> tri3 >> boundary;
+        meshfile >> point1 >> point2 >> point3 >> boundary;
         // Constructing the triangle
-        arrayTri[i].set(0,arrayNodes[tri1-1]);
-        arrayTri[i].set(1,arrayNodes[tri2-1]);
-        arrayTri[i].set(2,arrayNodes[tri3-1]);
+        arrayTri[i].set(0,arrayNodes[point1-1]);
+        arrayTri[i].set(1,arrayNodes[point2-1]);
+        arrayTri[i].set(2,arrayNodes[point3-1]);
 
         // Constructing the array of triangle containing p1 and p2
-        triInNodes[tri1 - 1].push_back(&arrayTri[i]);
-        triInNodes[tri2 - 1].push_back(&arrayTri[i]);
-        triInNodes[tri3 - 1].push_back(&arrayTri[i]);
+        triInNodes[point1 - 1].push_back(&arrayTri[i]);
+        triInNodes[point2 - 1].push_back(&arrayTri[i]);
+        triInNodes[point3 - 1].push_back(&arrayTri[i]);
 
     }
     triInNodes.resize(nbVertice);
@@ -241,8 +244,13 @@ void Mesh_2D::make_Stiffness_Matrix()
        
         if(Nodes[itNodes-TriangleContainingNodes.begin()].isBoundary())
         {
-            value_temp[itNodes-TriangleContainingNodes.begin()]=penalty_coeff;
+            value_temp[itNodes-TriangleContainingNodes.begin()] = penalty_coeff;
         }
+
+        // Sorting the value of the columns, so that the row indices are increasing (may be necessary for CSR format in UMFPACK)
+        
+        sort(col_ind_temp.begin(),col_ind_temp.end());
+        
 
         // Copying the temporary values to the  real vectors
 
@@ -408,7 +416,7 @@ void Mesh_2D::solveSystem()
     void *Numeric;
     int status;
     void *Symbolic;
-    for(int i=0; i< numberNonZero; i++)
+   /* for(int i=0; i< numberNonZero; i++)
     {
         cout << valArray[i] << " ";
     }
@@ -417,7 +425,7 @@ void Mesh_2D::solveSystem()
     {
         cout << colArray[i]<< " ";
     }
-    cout << endl<< endl << numberNonZero << endl;
+    cout << endl<< endl << numberNonZero << endl;*/
 
     //
     //  Carry out the symbolic factorization.
@@ -453,7 +461,7 @@ void exportGnuPlot(vector<Tri> inputTri, string file){
     {
         throw std::runtime_error("Impossible d'ouvrir le fichier: "+file);
     }
-    plotfile << "# Syntax for gnuplot: 'plot "+file +" using 1:2:($3-$1):($4-$2) with vectors nohead'" <<endl;
+    plotfile << "# Syntax for gnuplot: 'plot \""+file +"\" using 1:2:($3-$1):($4-$2) with vectors nohead'" <<endl;
     plotfile << "# The grid is a list of segment between the points (X0,Y0) and (X1,Y1)" <<endl;   
     plotfile << "# X0 Y0 X1 Y1" <<endl;
     for(vector<Tri>::iterator it = inputTri.begin(); it != inputTri.end(); ++it)

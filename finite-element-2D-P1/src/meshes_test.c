@@ -23,14 +23,14 @@ void test_Triangle()
     assert(Tri::Nb() == 3);
 
     R2 P4 = R2(0.,0.), P5 = R2(1.,0.), P6 = R2(0.,1.);
-    R2 P7 = R2(0.,0.), P8 = R2(4*sqrt(3.)/2.,2.), P9 = R2(4*sqrt(3.)/2.,2.);
+    R2 P7 = R2(0.,0.), P8 = R2(4*sqrt(3.)/2.,0.), P9 = R2(0.,2.);
     Tri T5 = Tri(P4,P5,P6), T6 = Tri(P5,P6,P4), T7 = Tri(P5,P4,P6);
     Tri T8 = Tri(P7,P8,P9);
     assert(fabs(T5.area()-1./2.)<0.00000001);
     assert(fabs(T5.area()-T6.area())<0.00000001);
     assert(fabs(T5.area()-T7.area())<0.00000001);
 
-    assert(fabs(T8.area()-16.*sqrt(3.)/4.)<0.000000001);
+    assert(fabs(T8.area()-16.*sqrt(3.)/8.)<0.000000001);
 
     assert(T1[0]->getX() == 0.3 && T1[1]->getY() ==1. && T1[2]->getX() == 2. );
     assert(T2[0]->getX() == 0.3 && T2[1]->getY() ==1. && T2[2]->getX() == 2. );
@@ -88,8 +88,8 @@ void test_loadNodes()
 
     assert(fabs(arrayNodes[8].getX() - 1. )<0.0000000001);
     assert(fabs(arrayNodes[8].getY() - 1. )<0.0000000001);
-    assert(arrayNodes[4].getBoundary(0) == 3); 
-    assert(arrayNodes[4].getBoundary(1) == 2); 
+    assert(arrayNodes[8].getBoundary(0) == 3); 
+    assert(arrayNodes[8].getBoundary(1) == 2); 
     for(int i=0;i < sizeA-1; i++)
     {
             assert(fabs(arrayNodes[i].getX() - (i%3)*0.5 )<0.0000000001);
@@ -115,11 +115,12 @@ void test_loadTri()
     int triSize = arrayTri.size(), nodeSize = arrayNodes.size(), stockSize=8 ;
     assert(arrayTri.size() == stockSize);
 
-    int firstArray[8]={1,1,2,2,4,4,5,5}, secondArray[8]={2,5,3,6,5,8,6,9}, thirdArray[8]={5,4,6,5,8,7,9,8};// Created by hand, reading test_mesh.msh
+    int firstArray[8]={1,1,2,2,4,4,5,5}, secondArray[8]={2,5,3,6,5,8,6,9}, thirdArray[8]={5,4,6,5,8,7,9,8}; // Created by hand, reading test_mesh.msh
     for(int i = 0; i<stockSize;i++){
-        assert( (arrayTri[i].get(1)-&arrayNodes[0]+1) == firstArray[i]);
-        assert( (arrayTri[i].get(2)-&arrayNodes[0]+1) == secondArray[i]);
-        assert( (arrayTri[i].get(3)-&arrayNodes[0]+1) == thirdArray[i]);
+//       cout << i << " " << (arrayTri[i].get(1)-&arrayNodes[0]+1) <<" " << firstArray[i] <<endl;
+        assert( (arrayTri[i].get(0)-&arrayNodes[0]+1) == firstArray[i]);
+        assert( (arrayTri[i].get(1)-&arrayNodes[0]+1) == secondArray[i]);
+        assert( (arrayTri[i].get(2)-&arrayNodes[0]+1) == thirdArray[i]);
     }
     for (int i = 0; i<nodeSize; i++)
     {
@@ -142,15 +143,21 @@ void test_Orthogonal_Mesh_2D()
     assert(col_ind.size() ==  9);
     assert(row_ptr.size() == 10);
     int Rsize = col_ind.size();
-
+    assert(fabs(value[0]-Mesh_2D::penalty_coeff)<0.0000000000001);
+    assert(fabs(value[1]-Mesh_2D::penalty_coeff)<0.0000000000001);
+    assert(fabs(value[2]-Mesh_2D::penalty_coeff)<0.0000000000001);
+    assert(fabs(value[3]-Mesh_2D::penalty_coeff)<0.0000000000001);
+    assert(fabs(value[4]-0.750)<0.0000000000001);
+    assert(fabs(value[5]-Mesh_2D::penalty_coeff)<0.0000000000001);
+    assert(fabs(value[6]-Mesh_2D::penalty_coeff)<0.0000000000001);
+    assert(fabs(value[7]-Mesh_2D::penalty_coeff)<0.0000000000001);
+    assert(fabs(value[8]-Mesh_2D::penalty_coeff)<0.0000000000001);
 
     for(int i = 0; i<Rsize; i++)
     {
         assert(col_ind[i]== i);
         assert(row_ptr[i] == i);
-        assert(fabs(value[i]-0.125)<0.0000000000001);
     }
-    assert(row_ptr[101]==101);
 }
 
 void test_P1_Lapl_Mesh_2D()
@@ -165,41 +172,52 @@ void test_P1_Lapl_Mesh_2D()
 
 
     lineMesh.make_Stiffness_Matrix();
-    vector<double> value;
+    vector<double> value,constant_vector;
     vector<int> col_ind, row_ptr;
+    
     lineMesh.get_Stiffness_Matrix(value,col_ind,row_ptr);
     assert(col_ind.size() ==  value.size());
     assert(col_ind.size() == 41);
     assert(row_ptr.size() == 10);
     int Rsize = col_ind.size();
-    assert(row_ptr[0] == 0);
-    assert(row_ptr[1] == 3);
-    assert(row_ptr[2] == 8);
-    assert(row_ptr[3] == 12);
-    assert(row_ptr[4] == 17);
-    assert(row_ptr[5] == 24);
-    assert(row_ptr[6] == 29);
-    assert(row_ptr[7] == 33);
-    assert(row_ptr[8] == 38);
-    assert(row_ptr[9] == 41);
+
+    int sum_neighbour[10] ={0,4,9,12,17,24,29,32,37,41};
+    for(int i=0;i<10;i++)
+    {
+        assert(row_ptr[i] == sum_neighbour[i]);
+    }
+
+
 
     assert(col_ind[0] == 0);    
     assert(col_ind[1] == 1);    
     assert(col_ind[2] == 3);     
-    assert(col_ind[3] == 1);
-    assert(col_ind[8] == 2);
-    assert(col_ind[12] == 3);
-    assert(col_ind[17] == 4);
-    assert(col_ind[24] == 5);
-    assert(col_ind[29] == 6);
-    assert(col_ind[33] == 7);
-    assert(col_ind[38] == 8);
+    assert(col_ind[3] == 4);
+    assert(col_ind[4] == 0);
+    assert(col_ind[9] == 1);
+    assert(col_ind[12] == 0);
+    assert(col_ind[17] == 0);
+    assert(col_ind[24] == 1);
+    assert(col_ind[29] == 3);
+    assert(col_ind[32] == 3);
+    assert(col_ind[37] == 4);
+    assert(col_ind[38] == 5);
+    assert(col_ind[39] == 7);
+    assert(col_ind[40] == 8);
     
-    for(int i = 0; i<9; i++)
+    int j=0;
+    for(int i = 0; i<41; i++)
     {
-        if(i !=4)
+        if(row_ptr[j] == i)
         {
-            assert( fabs(value[row_ptr[i]]-P1_Lapl_Mesh_2D::penalty_coeff)<0.000000000001);
+            j++;        
+        }
+        if(row_ptr[i] == j-1)
+        {
+            if(j-1 !=4)
+            {
+                assert( fabs(value[row_ptr[i]]-P1_Lapl_Mesh_2D::penalty_coeff)<0.000000000001);
+            }
         }
     }
     try{
@@ -209,6 +227,8 @@ void test_P1_Lapl_Mesh_2D()
         assert(((string) exce.what()).compare("Erreur: tentative de résolution du problème sans avoir calculé la partie constante du système (vecteur constant de taille nulle).") ==0);
     }
     lineMesh.make_Constant_Vector();
+    lineMesh.get_Constant_Vector(constant_vector);
+
     lineMesh.solveSystem();
 }
 void gnuPlot()
