@@ -2,18 +2,18 @@ TODO
 
 Grande lignes du projet:
 
-1) Résoudre Laplacien 1D P1
+# Fait 1) Résoudre Laplacien 1D P1
 2) Résoudre Laplacien 1D P2
  **  Faire réunion structure du projet  ** 
-3) Résoudre Laplacien 2D P1
+# Fait 3) Résoudre Laplacien 2D P1
 4) Résoudre N-Stokes 1D P1
 5) Résoudre N-Stokes 2D P1
 6) Réousdre N-Stokes 2D P2
 
 A préciser:
 
-Utilisation de CMAKE
-Structure du programme
+# Pas besoin Utilisation de CMAKE
+# src/ bin/ test/ include/ Structure du programme
 
 A comprendre:
 
