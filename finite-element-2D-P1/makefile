@@ -8,14 +8,14 @@ NAME=main
 
 all: main testR2
 
-main: src/main.c src/double_dim.c src/meshes_tri.c
-	$(CC) src/main.c src/double_dim.c src/meshes_tri.c $(INCLUDE) $(LIB) $(FLAGS) -o "bin/"$(NAME)
+main: src/main.c src/double_dim.c src/mesh_2D.c src/var_problem.c src/triangle.c
+	$(CC) src/main.c src/double_dim.c src/mesh_2D.c src/var_problem.c src/triangle.c $(INCLUDE) $(LIB) $(FLAGS) -o "bin/"$(NAME)
 
-testR2: src/double_dim_test.c src/double_dim.c
-	$(CC) src/double_dim_test.c src/double_dim.c $(INCLUDE) $(LIB) $(TESTFLAGS) $(FLAGS) -o "test/R2_test" 
+testR2: src/test/double_dim_test.c src/double_dim.c
+	$(CC) src/test/double_dim_test.c src/double_dim.c $(INCLUDE) $(LIB) $(TESTFLAGS) $(FLAGS) -o "test/R2_test" 
 
-testmeshes: src/meshes_test.c src/meshes_tri.c src/double_dim.c
-	$(CC) src/meshes_test.c src/meshes_tri.c src/double_dim.c $(INCLUDE) $(LIB) $(TESTFLAGS) $(FLAGS) -o "test/meshes_test"
+testmeshes: src/test/meshes_test.c src/mesh_2D.c src/var_problem.c src/triangle.c src/double_dim.c
+	$(CC) src/test/meshes_test.c src/mesh_2D.c src/var_problem.c src/triangle.c src/double_dim.c $(INCLUDE) $(LIB) $(TESTFLAGS) $(FLAGS) -o "test/meshes_test"
 
 clean:
 	rm bin/main

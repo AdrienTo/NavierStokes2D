@@ -1,5 +1,5 @@
 #include <iostream>
-#include "meshes_tri.h"
+#include "var_problem.h"
 using namespace std;
 
 int main(int argc, char** argv)

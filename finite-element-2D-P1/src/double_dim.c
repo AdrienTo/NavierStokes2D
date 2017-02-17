@@ -57,9 +57,12 @@ void R2::setBoundary(int boundary, int newLabel)
 int R2::getBoundary(int boundaryNumber) const
 {
     return label[boundaryNumber];
-};
+}
 
-
+R2 R2::orthogonal()
+{
+    return R2(-y,x);
+}
 double distR2(R2 point1, R2 point2)
 {
     double x = point1.getX() - point2.getX();
@@ -70,6 +73,7 @@ bool compR2(R2 point1, R2 point2)
 {
     return (point1.getX() == point2.getX()) && (point1.getY() ==  point2.getY());
 }
+
 
 ////////////
 //Operators
@@ -117,10 +121,7 @@ R2 R2::operator-(R2 subVect)
 {
     return R2(x-subVect.getX(),y-subVect.getY());
 }
-R2 R2::orthogonal()
-{
-    return R2(-y,x);
-}
+
 R2 operator*(double lambda, R2 point)
 {
     R2  newVect(point.x*lambda, point.y*lambda);

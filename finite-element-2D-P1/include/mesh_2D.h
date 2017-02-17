@@ -5,34 +5,8 @@
 #include "double_dim.h"
 #include <vector>
 #include <cmath>
+#include "triangle.h"
 
-// Class representing a vertice in dimension 1
-
-class Tri
-{
-private:
-    R2 * vertices[3];
-    static int NbTri;
-public:
-    Tri();
-    Tri(R2 & point1, R2 & point2, R2 & point3);
-    Tri(const Tri& Tcopy);
-    ~Tri();
-    R2 * operator[](int nbVert) const;
-    void operator=(const Tri& Tcopy);
-    friend ostream& operator<<(ostream& stream,const Tri& Triangle);
-    void set(int nbVertice,R2 & vertice);
-    R2 * get(int nbVertice) const;
-    void show();
-    void showRaw();
-    double area();
-
-    static const int nbNodes = 3;
-    static int Nb();
-
-};
-
-ostream& operator<<(ostream& stream,const Tri& Triangle);
 
 
 
@@ -94,24 +68,7 @@ class Mesh_2D
 
 };
 
-class Orthogonal_Mesh_2D: public Mesh_2D                // This class has been created for the purpose of testing
-{
-    public:
-        Orthogonal_Mesh_2D(char* filename): Mesh_2D(filename){};                // Call the Mesh_1D constructor at the initalization
-        double limitCondition(R2* point);            
-        double linearForm(R2* originPoint, Tri triangle); 
-        double bilinearForm(R2* originPoint, R2*  otherPoint, Tri triangle);
-};
 
-class P1_Lapl_Mesh_2D: public Mesh_2D
-{
-    public:
-        P1_Lapl_Mesh_2D(char* filename): Mesh_2D(filename){};                // Call the Mesh_1D constructor at the initalization
-        double limitCondition(R2* point);            
-        double linearForm(R2* originPoint, Tri triangle);
-        double bilinearForm(R2 * originPoint, R2 *  otherPoint, Tri triangle);
-};
-ostream& operator<<(ostream& stream,const Tri& triangle);
 
 vector<R2> loadNodes(char* file) ;
 void loadTri(char* file,vector<R2> & arrayNodes, vector<Tri> &arrayTri,vector<vector<Tri*> > & triInNodes);
