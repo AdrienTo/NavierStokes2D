@@ -26,6 +26,18 @@ void test_show_R2()
     cout << "Le vecteur à coordonnées X = 23.121 ,Y = -10.52 va s'afficher:"<<endl;
     point1.show();
 }
+// Teste l'ajout et la différence entre points
+
+void test_sum_R2()
+{
+    R2 point1 = R2(11.5,11.5);
+    R2 point2 = R2(1.5,1.5);
+    R2 point3 = R2(1.,1.5);
+    R2 point4 = point3-point2;
+    R2 point5 = point3+point1;
+    assert((fabs(point4.getX()+0.5)<0.00000001) && (fabs(point4.getY())<0.00000001) );
+    assert((fabs(point5.getX()-12.5)<0.00000001) && (fabs(point5.getY()-13.0)<0.00000001) );
+}
 
 // Teste la fonction distance entre points
 
@@ -35,7 +47,7 @@ void test_distance_R2()
     R2 point2 = R2(1.5,1.5);
     R2 point3 = R2(0.,1.5);
     R2 point4 = R2(1.5,0.); 
-
+    
     assert(fabs(distR2(point1,point2)-sqrt(2.)*10.)<0.005);
     assert( distR2(point2,point2) == 0.);
     assert(fabs(distR2(point3,point2)-1.5)<0.005);
@@ -88,7 +100,7 @@ void test_operation_R2()
     R2 point2 = point1;
     R2 point3 = R2(1.,1.5);
     R2 point4 = R2(1.5,0.); 
-
+    R2 point5 = point1.orthogonal();
     matR2 mat1(1.,2.,3.,4.);
     matR2 mat2;
 
@@ -100,8 +112,7 @@ void test_operation_R2()
     cout << "Le point de coordonnées 11.5, 14.5 va etre affiche" << point1 <<endl;
     cout << "La matrice avec les valeurs 1, 2, 3, 4 va etre affichee " << mat1 <<endl;
     
-    point4 = (point1 + point3);
-    assert((point4.getX() == 12.5)  && point4.getY() == 16.);
+    assert((fabs(point5.getX()+14.5)<0.000000000001) && (fabs(point5.getY()-11.5)<0.000000000001));
     point4 = 1.45*point3;
     assert((point4.getX() == 1.45)  && point4.getY() == 2.175);
     double scalar;
@@ -150,6 +161,7 @@ int main()
     test_show_R2();
     test_distance_R2();
     test_compare_R2();
+    test_sum_R2();
     cout << "Testing matrix basics" << endl;
     test_creation_mat_R2();
     test_show_mat_R2();

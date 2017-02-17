@@ -177,11 +177,11 @@ void test_P1_Lapl_Mesh_2D()
     
     lineMesh.get_Stiffness_Matrix(value,col_ind,row_ptr);
     assert(col_ind.size() ==  value.size());
-    assert(col_ind.size() == 41);
+    assert(col_ind.size() == 33);
     assert(row_ptr.size() == 10);
     int Rsize = col_ind.size();
 
-    int sum_neighbour[10] ={0,4,9,12,17,24,29,32,37,41};
+    int sum_neighbour[10] ={0,3,7,10,14,19,23,26,30,33};
     for(int i=0;i<10;i++)
     {
         assert(row_ptr[i] == sum_neighbour[i]);
@@ -192,32 +192,43 @@ void test_P1_Lapl_Mesh_2D()
     assert(col_ind[0] == 0);    
     assert(col_ind[1] == 1);    
     assert(col_ind[2] == 3);     
-    assert(col_ind[3] == 4);
-    assert(col_ind[4] == 0);
-    assert(col_ind[9] == 1);
-    assert(col_ind[12] == 0);
-    assert(col_ind[17] == 0);
-    assert(col_ind[24] == 1);
-    assert(col_ind[29] == 3);
-    assert(col_ind[32] == 3);
-    assert(col_ind[37] == 4);
-    assert(col_ind[38] == 5);
-    assert(col_ind[39] == 7);
-    assert(col_ind[40] == 8);
+    assert(col_ind[3] == 0);
+    assert(col_ind[4] == 1);
+    assert(col_ind[5] == 2);
+    assert(col_ind[6] == 4);
+
+    assert(col_ind[7] == 1);
+    assert(col_ind[10] == 0);
+    assert(col_ind[14] == 1);
+    assert(col_ind[19] == 2);
+    assert(col_ind[23] == 3);
+    assert(col_ind[26] == 4);
+    assert(col_ind[30] == 5);
+    assert(col_ind[31] == 7);
+    assert(col_ind[32] == 8);
     
     int j=0;
-    for(int i = 0; i<41; i++)
-    {
+    for(int i = 0; i<33; i++)
+    {   
         if(row_ptr[j] == i)
         {
-            j++;        
+            j++;     
         }
-        if(row_ptr[i] == j-1)
+        if(j-1 == col_ind[i])
         {
             if(j-1 !=4)
             {
-                assert( fabs(value[row_ptr[i]]-P1_Lapl_Mesh_2D::penalty_coeff)<0.000000000001);
+                assert( fabs(value[i]-P1_Lapl_Mesh_2D::penalty_coeff)<0.000000000001);
             }
+            if(j-1==4)
+            {
+                assert( fabs(value[i]-4.)<0.000000000001);  
+            }
+
+        }
+        else
+        {
+            assert( (fabs(value[i]-1./2.)<0.000000000001) ||(fabs(value[i]+1./2.)<0.000000000001) || (fabs(value[i]+1.)<0.000000000001) || (fabs(value[i]-1.)<0.000000000001));  
         }
     }
     try{

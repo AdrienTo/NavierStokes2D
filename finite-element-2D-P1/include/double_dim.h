@@ -25,6 +25,8 @@ public:
     void operator=(const R2& copyVect);
     friend ostream& operator<<(ostream& stream,const R2& pointPrint);
     R2 operator+(R2 addVect);
+    R2 operator-(R2 subVect);
+    R2 orthogonal();
     double operator,(R2 scalarVect);
     double operator[](int index);
     friend R2 operator*(double lambda, R2 point);

@@ -8,8 +8,8 @@ NAME=main
 
 all: main testR2
 
-main: src/main.c src/double_dim.c
-	$(CC) src/main.c src/double_dim.c $(INCLUDE) $(LIB) $(FLAGS) -o "bin/"$(NAME)
+main: src/main.c src/double_dim.c src/meshes_tri.c
+	$(CC) src/main.c src/double_dim.c src/meshes_tri.c $(INCLUDE) $(LIB) $(FLAGS) -o "bin/"$(NAME)
 
 testR2: src/double_dim_test.c src/double_dim.c
 	$(CC) src/double_dim_test.c src/double_dim.c $(INCLUDE) $(LIB) $(TESTFLAGS) $(FLAGS) -o "test/R2_test" 

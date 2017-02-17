@@ -113,6 +113,14 @@ double R2::operator[](int index)
         return y;
     }
 }
+R2 R2::operator-(R2 subVect)
+{
+    return R2(x-subVect.getX(),y-subVect.getY());
+}
+R2 R2::orthogonal()
+{
+    return R2(-y,x);
+}
 R2 operator*(double lambda, R2 point)
 {
     R2  newVect(point.x*lambda, point.y*lambda);

@@ -6,7 +6,7 @@
 #include <cassert>
 #include <suitesparse/umfpack.h>
 #include <algorithm>
-
+#include <limits>
 int Tri::NbTri = 0;
 
 Tri::Tri(){
@@ -349,30 +349,57 @@ double P1_Lapl_Mesh_2D::bilinearForm(R2 * originPoint, R2 *  otherPoint, Tri tri
         double area = triangle.area();
         double scalar = 0;
         R2 * P1 = triangle.get(0), * P2 = triangle.get(1), * P3 = triangle.get(2);
-        int indiceOriginPoint = -(originPoint != P1) + (originPoint == P2)*2 + (originPoint == P3)*3;                    // Get the index of the points in the triangle and set the value to -1 if not in the triangle
-        int indiceOtherPoint = -(otherPoint != P1) + (otherPoint == P2)*2 + (otherPoint == P3)*3;   // Same as above, for the other point
+        // Get the index of the points in the triangle and set the value to -1 if not in the triangle
+        int indiceOriginPoint = -(originPoint != P1) + (originPoint == P2)*2 + (originPoint == P3)*3;
+
+        // Same as above, for the other point                    
+        int indiceOtherPoint = -(otherPoint != P1) + (otherPoint == P2)*2 + (otherPoint == P3)*3; 
+        R2 gradientVectorOriginPoint = R2(NAN,NAN), gradientVectorOtherPoint = R2(NAN,NAN), vectorOneSide = R2(NAN,NAN); 
         assert(indiceOriginPoint <=2 && indiceOriginPoint >=0 );
         assert(indiceOtherPoint <=2 && indiceOtherPoint >=0 );
-        if(originPoint == otherPoint)
-        {
-            scalar = ( pow(distR2(*triangle.get( ( indiceOriginPoint+1)%3 ), *triangle.get( ( indiceOriginPoint+2)%3 ) ),2) )/(4*area*area);   //
-        }
-        else  
-        {
-            scalar =distR2(*triangle.get( ( indiceOriginPoint+1)%3 ), *triangle.get( ( indiceOriginPoint+2)%3 ) )*distR2(*triangle.get( ( indiceOtherPoint+1)%3 ), *triangle.get( ( indiceOtherPoint+2)%3 ) )/(4*area*area);
-        }
-        
+
+        // Let ABC be the triangle, the gradient vector of the point A is (orthog(BC)/BC)*1/h = orthog(BC)/(h*BC) = orthog(BC)/(2*area)
+
+        gradientVectorOriginPoint = (*triangle.get( ( indiceOriginPoint+1)%3 ) - *triangle.get( ( indiceOriginPoint+2)%3 )).orthogonal();
+       
+        // Get the right direction and length
+     
+        vectorOneSide =    (*triangle.get( ( indiceOriginPoint)%3 ) - *triangle.get( ( indiceOriginPoint+1)%3 ));
+        gradientVectorOriginPoint = ( ((vectorOneSide,gradientVectorOriginPoint)>0)*2-1 )*gradientVectorOriginPoint; // Right direction
+        gradientVectorOriginPoint = (1/(2*area))*gradientVectorOriginPoint;  
+
+
+        gradientVectorOtherPoint = (*triangle.get( ( indiceOtherPoint+1)%3 ) - *triangle.get( ( indiceOtherPoint+2)%3 )).orthogonal();
+  
+       // Get the right direction and length
+     
+        vectorOneSide =    (*triangle.get( ( indiceOtherPoint)%3 ) - *triangle.get( ( indiceOtherPoint+1)%3 ));
+        gradientVectorOtherPoint = ( ((vectorOneSide,gradientVectorOtherPoint)>0)*2-1 )*gradientVectorOtherPoint;     // Right direction
+        gradientVectorOtherPoint = (1/(2*area))*gradientVectorOtherPoint; 
+
+        scalar = (gradientVectorOriginPoint,gradientVectorOtherPoint); 
+
         return  scalar*area;
 }
 double P1_Lapl_Mesh_2D::linearForm(R2 * originPoint, Tri triangle)
 {
         double area = triangle.area();
-        double scalar = 1./3.;
+       //double scalar = 10./3.;
+        double x = originPoint->getX(), y=originPoint->getY();
+        double scalar = 30*cos((x*x+y*y)*3);
+       /* if( x<0.)
+        {
+            
+        }
+        else
+        {
+            return 0.;
+        }*/
         return  scalar*area;
 }
 double P1_Lapl_Mesh_2D::limitCondition(R2* point)
 {
-    return 5;
+    return 0.;
 }     
 
 void Mesh_2D::solveSystem()
@@ -448,10 +475,20 @@ void Mesh_2D::solveSystem()
     //
       umfpack_di_free_numeric ( &Numeric );
     cout<<endl;
+    double valueMin=std::numeric_limits<double>::max(),valueMax=std::numeric_limits<double>::min();
     for(int i=0; i<sizeMatrix; i++)
     {
-        cout << Nodes[i].getX() << " "  << Nodes[i].getY() <<" "<< result[i]<< " "<< constArray[i] <<endl;
+        if(valueMin>result[i])
+        {
+            valueMin = result[i];
+        }
+        if(valueMax<result[i])
+        {
+            valueMax = result[i];
+        }
+        cout << 20*Nodes[i].getX() << " "  << 20*Nodes[i].getY() <<" "<< result[i]<< " "<< constArray[i] <<endl;
     }
+    cout << "# min =" << valueMin << " max ="<< valueMax << endl;
 }
 
 void exportGnuPlot(vector<Tri> inputTri, string file){
